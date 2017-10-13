@@ -21,10 +21,10 @@ function init() {
 
     camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 10000);
     camera.position.set(0,40,40);
-    //camera.rotation.set(Math.PI/4,0,0);
 
     controls = new THREE.OrbitControls(camera);
     controls.autoRotate = true;
+
 
     addEvents();
 }
@@ -42,7 +42,7 @@ var waves = [];
 var group = new THREE.Object3D();//create an empty container
 var max = 5;
 var texture;
-var stage, cont = new createjs.Container(), background;
+var stage, cont = new createjs.Container(), background, border;
 function setup() {
 
 	if (useLights) {
@@ -90,6 +90,12 @@ function setup() {
 	background = new createjs.Shape();
 	background.graphics.f("black").dr(-cw/2,-cw/2,cw,cw);
 	cont.addChild(background);
+	border = new createjs.Shape();
+	var bw = 40;
+	border.graphics.ss(bw);
+	border.fillCommand = border.graphics.s(createjs.Graphics.getHSL(200, 100, 50)).command;
+	border.graphics.dr(bw/2,bw/2,1024-bw,1024-bw);
+	stage.addChild(border);
 	document.body.appendChild(canvas);
 
 	texture = new THREE.CanvasTexture(canvas);
@@ -113,7 +119,7 @@ function setup() {
 
 
 	// Create initial set
-	for (var i = 0, l = 80; i < l; i++) {
+	for (var i = 0, l = 100; i < l; i++) {
 		var r = Rnd(0.5, max),
 				s = new THREE.SphereGeometry(r, 20, 20),
 				sp = new THREE.Mesh(s, material);
@@ -121,7 +127,7 @@ function setup() {
 		sp.direction = 0; // Still
 		var loopCount = 0, okay = false;
 		while (loopCount++ < 30) {
-			sp.position.set(Rnd(130) - 50, r, Rnd(130) - 50);
+			sp.position.set(Rnd(-125,125), r, Rnd(-125,125));
 			okay = !isClose(sp);
 			if (okay) { break; }
 		}
@@ -163,6 +169,8 @@ function update(o) {
 		});
 	}
 	background.alpha = 1;//o.all.val;
+	//border.alpha = o.all.val;
+	border.fillCommand.style = createjs.Graphics.getHSL(200, 100, o.high.val*30 + 70|0)
 
 	spheres.forEach(function(sphere) {
 		var dir = sphere.posY - sphere.position.y;
@@ -173,22 +181,31 @@ function update(o) {
 		sphere.position.setY(sphere.posY);
 	});
 
+	rotIndex+=o.all.avg*0.1;
 	// Add big wave
-	/*if (o.low.avg > 0.7) {
-		var wave = new createjs.Shape().set({scale:0});
-		wave.graphics.ss(o.low.val*16|0, null, null, null, true)
-				.s(createjs.Graphics.getHSL(200, 100, o.mid.val*80|0))
-				.dc(0,0,1024);
+	if (o.low.avg > 0.7) {
+		var wave = new createjs.Shape().set();
+		wave.graphics.ss(o.low.val*16|0, null, null, null, false)
+				.f(createjs.Graphics.getHSL(200, 100, o.mid.val*80|0))
+				.dc(0,0,20);
+		var x = Math.sin(rotIndex)*600,
+				y = Math.cos(rotIndex)*600;
 		createjs.Tween.get(wave)
-				.to({scale:1}, 3000*o.high.val, createjs.Ease.bounceOut)
+				.to({x:x, y:y, scale:30}, 500*o.high.val, createjs.Ease.quadIn)
 				.call(e => cont.removeChild(wave));
 		cont.addChild(wave);
-	}*/
+	}
+
+	if (o.all.val < 0.2) { colIndex+=2;}
 
 	texture.needsUpdate = true;
 
+	controls.autoRotateSpeed = o.all.avg*4;
+
     render(o);
 }
+var rotIndex = 0;
+var colIndex = 0;
 
 function addWave(sphere, o) {
 	var x = sphere.position.x,
