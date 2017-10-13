@@ -38,6 +38,7 @@ var skyBoxMaterial = null;
 
 var cubes = [];
 var spheres = [];
+var waves = [];
 var group = new THREE.Object3D();//create an empty container
 var max = 5;
 var texture;
@@ -71,9 +72,9 @@ function setup() {
 	// objects
 	material = new THREE.MeshPhysicalMaterial({
 												  metalness: 1,
-												  roughness: 0.9,
+												  roughness: 0.3,
 												  shading: THREE.SmoothShading,
-												  envMap: getCubeMap(4)
+												  envMap: getCubeMap(3)
 											  });
 
 
@@ -161,26 +162,40 @@ function update(o) {
 			}
 		});
 	}
-	background.alpha = o.all.val;
+	background.alpha = 1;//o.all.val;
+
 	spheres.forEach(function(sphere) {
 		var dir = sphere.posY - sphere.position.y;
 		if (dir > 0 && sphere.direction < 0) {
-			addWave(sphere);
+			addWave(sphere, o);
 		}
 		sphere.direction = sphere.posY - sphere.position.y; // Heading down
 		sphere.position.setY(sphere.posY);
 	});
+
+	// Add big wave
+	/*if (o.low.avg > 0.7) {
+		var wave = new createjs.Shape().set({scale:0});
+		wave.graphics.ss(o.low.val*16|0, null, null, null, true)
+				.s(createjs.Graphics.getHSL(200, 100, o.mid.val*80|0))
+				.dc(0,0,1024);
+		createjs.Tween.get(wave)
+				.to({scale:1}, 3000*o.high.val, createjs.Ease.bounceOut)
+				.call(e => cont.removeChild(wave));
+		cont.addChild(wave);
+	}*/
 
 	texture.needsUpdate = true;
 
     render(o);
 }
 
-function addWave(sphere) {
+function addWave(sphere, o) {
 	var x = sphere.position.x,
 			y = sphere.position.z;
 	var shape = new createjs.Shape().set({x:x*4, y:y*4, scale:0, alpha:sphere.loud}),
-			color = createjs.Graphics.getRGB(255,255-(sphere.r)/max*255|0, 0);
+			//color = createjs.Graphics.getRGB(255,255-(sphere.r)/max*255|0, 0);
+			color = createjs.Graphics.getHSL(200, 100, o.mid.val*80|0);
 	shape.graphics.s(color).dc(0,0,sphere.r).ss(8,null,null,null,true);
 	createjs.Tween.get(shape)
 			.to({scale:4*sphere.r}, 500*sphere.r, createjs.Ease.quadOut)
