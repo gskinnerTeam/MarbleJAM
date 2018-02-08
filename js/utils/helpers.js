@@ -116,6 +116,7 @@ function getCubeMap(i, canvas) {
         {file: "1.jpg", size: 1024},
         {file: "2.jpg", size: 1024},
         {file: "3.jpg", size: 1024},
+        {file: "1174.jpg", size: 512}
     ];
 
     var loader = new THREE.ImageLoader();
@@ -144,6 +145,22 @@ function getCubeMap(i, canvas) {
         cubeMap.image[ 5 ] = getSide(3, 1); // nz
         cubeMap.needsUpdate = true;
 
+    });
+
+    return cubeMap;
+}
+
+function getImageMap(src, map) {
+    var cubeMap = new THREE.Texture(null, map);
+    cubeMap.format = THREE.RGBFormat;
+    cubeMap.flipY = false;
+
+    var loader = new THREE.ImageLoader();
+    var file = "assets/textures/" + src;
+    loader.load(file, function (image) {
+    console.log(image);
+        cubeMap.image = image;
+        cubeMap.needsUpdate = true;
     });
 
     return cubeMap;

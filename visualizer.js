@@ -6,7 +6,7 @@ var useLights = true;
 var cubeMap = 11;
 var container = new THREE.Group();
 
-var track = "./assets/Magic Trooper.mp3";
+var track = "./assets/insane.mp3";
 
 var material = null;
 
@@ -43,6 +43,7 @@ var group = new THREE.Object3D();//create an empty container
 var max = 5;
 var texture;
 var stage, cont = new createjs.Container(), background, border;
+var overallTrend = 0;
 function setup() {
 
 	if (useLights) {
@@ -74,7 +75,9 @@ function setup() {
 												  metalness: 1,
 												  roughness: 0.3,
 												  shading: THREE.SmoothShading,
-												  envMap: getCubeMap(3)
+												  envMap: getImageMap("1174.jpg", THREE.SphericalReflectionMapping),
+												  //emissive: new THREE.Color(0xffffff),
+		emissiveIntensity: 1
 											  });
 
 
@@ -156,17 +159,7 @@ var rot = 0;
 function update(o) {
 
 	if (o.all.hit || o.low.hit || o.high.hit) {
-		spheres.forEach(function(sphere) {
-			var f = (1-Math.pow(o.all.avg, 4)) * (5.5-sphere.r);
-			
-			if (!sphere.animating || sphere.posY < 0.25) {//} && sphere.r/max > o.all) {
-				createjs.Tween.get(sphere, {override:true})
-						.set({animating:true, loud:o.all.avg})
-						.to({posY:10*f}, 120*f, createjs.Ease.quadOut)
-						.to({posY:sphere.r}, 300*f, createjs.Ease.bounceOut)
-						.set({animating:false, direction: 0});
-			}
-		});
+		bounce(o);
 	}
 	background.alpha = 1;//o.all.val;
 	//border.alpha = o.all.val;
@@ -181,22 +174,17 @@ function update(o) {
 		sphere.position.setY(sphere.posY);
 	});
 
-	rotIndex+=o.all.avg*0.1;
-	// Add big wave
+	rotIndex+=o.all.val*0.1 * (o.all.trend > 0 ? -1 : 1);
+
+	// Main visualizer
 	if (o.low.avg > 0.7) {
-		var wave = new createjs.Shape().set();
-		wave.graphics.ss(o.low.val*16|0, null, null, null, false)
-				.f(createjs.Graphics.getHSL(200, 100, o.mid.val*80|0))
-				.dc(0,0,20);
-		var x = Math.sin(rotIndex)*600,
-				y = Math.cos(rotIndex)*600;
-		createjs.Tween.get(wave)
-				.to({x:x, y:y, scale:30}, 500*o.high.val, createjs.Ease.quadIn)
-				.call(e => cont.removeChild(wave));
-		cont.addChild(wave);
+		addBigWave(o);
 	}
 
 	if (o.all.val < 0.2) { colIndex+=2;}
+	overallTrend += Math.pow(o.all.trend || 0, 4) * 30;
+	overallTrend *= 0.97;
+	if (o.all.val > 0.7 && o.all.hit) { overallTrend += 20; }
 
 	texture.needsUpdate = true;
 
@@ -206,6 +194,32 @@ function update(o) {
 }
 var rotIndex = 0;
 var colIndex = 0;
+
+function bounce(o) {
+	spheres.forEach(function(sphere) {
+		var f = (1 - Math.pow(o.all.avg, 4)) * (5.5 - sphere.r);
+		if (!sphere.animating || sphere.posY < 0.25) {
+			createjs.Tween.get(sphere, {override: true})
+					.set({animating: true, loud: o.all.avg})
+					.to({posY: 10 * f}, 120 * f, createjs.Ease.quadOut)
+					.to({posY: sphere.r}, 300 * f, createjs.Ease.bounceOut)
+					.set({animating: false, direction: 0});
+		}
+	});
+}
+
+function addBigWave(o) {
+	var wave = new createjs.Shape().set({x: Rnd(-10,10), y:Rnd(-10,10), rotation:rotIndex * 180/Math.PI, scale:0.3});
+	wave.graphics.ss(o.low.val*5|0, null, null, null, false)
+			.s(createjs.Graphics.getHSL(overallTrend|0, 100, o.mid.val*100|0))
+			.mt(0,-30*Math.pow(o.low.avg,2)).lt(0,30*Math.pow(o.low.avg,2));
+	var x = Math.cos(rotIndex)*600,
+			y = Math.sin(rotIndex)*600;
+	createjs.Tween.get(wave)
+			.to({x:x, y:y, scale:10, alpha:0}, 500*Math.pow(o.high.val, 2), createjs.Ease.quadIn)
+			.call(e => cont.removeChild(wave));
+	cont.addChild(wave);
+}
 
 function addWave(sphere, o) {
 	var x = sphere.position.x,
